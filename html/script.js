@@ -3528,6 +3528,56 @@ const STORAGE_KEY = 'yct_current_player';
       'group-create', groupName
     );
 
+    const completeCreation = (res, recoveredGroups) => {
+      const group = res && res.data && res.data.group;
+      const groups = Array.isArray(recoveredGroups)
+        ? recoveredGroups
+        : (group ? [group] : []);
+
+      $('#createVitalGroupName').value = '';
+      clearPendingMutationRequestId_(
+        'group-create', state.pendingGroupCreateRequestId
+      );
+      state.pendingGroupCreateRequestId = '';
+      state.pendingGroupCreateSignature = '';
+      invalidateByRule_('groupChanged');
+      state.vitalGroups = groups;
+      setCache_('groupInfo', { groups: groups });
+      renderVitalGroups();
+      setResultMessage(
+        '#vitalGroupsMessage',
+        res.data.message || '活力組已建立',
+        true
+      );
+    };
+
+    const confirmAfterTransportFailure = (originalError) => callServer(
+      'getMyVitalGroups',
+      state.currentPlayer.playerId
+    ).then((confirmation) => {
+      const groups = isSuccess(confirmation)
+        ? (confirmation.data.groups || [])
+        : [];
+      const createdGroup = groups.find((group) =>
+        String(group.groupName || '').trim() === groupName
+      );
+
+      if (!createdGroup) {
+        throw originalError;
+      }
+
+      completeCreation({
+        success: true,
+        data: {
+          message: '活力組已建立',
+          group: createdGroup,
+          recovered: true
+        }
+      }, groups);
+    }).catch(() => {
+      throw originalError;
+    });
+
     callServer('createVitalGroup', {
       playerId: state.currentPlayer.playerId,
       groupName: groupName,
@@ -3545,16 +3595,9 @@ const STORAGE_KEY = 'yct_current_player';
           return;
         }
 
-        $('#createVitalGroupName').value = '';
-        clearPendingMutationRequestId_(
-          'group-create', state.pendingGroupCreateRequestId
-        );
-        state.pendingGroupCreateRequestId = '';
-        state.pendingGroupCreateSignature = '';
-        invalidateByRule_('groupChanged');
-        setResultMessage('#vitalGroupsMessage', res.data.message || '活力組已建立', true);
-        loadVitalGroups();
+        completeCreation(res);
       })
+      .catch((error) => confirmAfterTransportFailure(error))
       .catch((error) => {
         setResultMessage('#vitalGroupsMessage', getErrorMessage(error));
       })
