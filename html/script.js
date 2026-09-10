@@ -1604,7 +1604,9 @@ const STORAGE_KEY = 'yct_current_player';
 
     $('#myAvatarBtn').addEventListener('click', openAvatarModal);
     $('#openAvatarBtn').addEventListener('click', openAvatarModal);
-    $('#myRefreshBtn').addEventListener('click', refreshMyPage);
+    $('#myRefreshBtn').addEventListener('click', () => {
+      refreshMyPage({ force: true });
+    });
     $('#openGrowthModalBtn').addEventListener('click', openGroupContributionModal);
     $('#openPracticeHistoryBtn').addEventListener('click', openAllPracticeHistoryModal);
     $('#openVitalGroupsBtn').addEventListener('click', openVitalGroupsModal);
@@ -1845,7 +1847,7 @@ const STORAGE_KEY = 'yct_current_player';
 
 
     if (name === 'my' && !options.skipDataLoad) {
-      refreshMyPage();
+      refreshMyPage({ force: false });
     }
   }
 
@@ -5544,8 +5546,22 @@ const STORAGE_KEY = 'yct_current_player';
     }).join('');
   }
 
-  function refreshMyPage() {
-    if (isCacheValid_('accountProfile') && isCacheValid_('journey')) {
+  function refreshMyPage(options) {
+    options = options || {};
+    const force = options.force === true;
+
+    /*
+     * 首頁 Dashboard 已經包含同行手冊需要的玩家與旅程資料。
+     * 切換到「我的」只重繪記憶體狀態，不再因快取同步時序而額外送 API。
+     * 使用者明確按「更新」時才重新讀取。
+     */
+    if (!force && state.currentPlayer) {
+      renderPlayer(state.currentPlayer);
+      renderGroupJourney(state.groupJourney);
+      return Promise.resolve();
+    }
+
+    if (!force && isCacheValid_('accountProfile') && isCacheValid_('journey')) {
       const profileData = getCache_('accountProfile') || {};
       const journeyData = getCache_('journey') || null;
 
@@ -5557,12 +5573,12 @@ const STORAGE_KEY = 'yct_current_player';
 
       state.groupJourney = journeyData;
       renderGroupJourney(state.groupJourney);
-      return;
+      return Promise.resolve();
     }
 
     setLoading(true, '更新我的同行手冊...');
 
-    const profilePromise = isCacheValid_('accountProfile')
+    const profilePromise = !force && isCacheValid_('accountProfile')
       ? Promise.resolve({
         success: true,
         data: getCache_('accountProfile') || {}
@@ -5572,7 +5588,7 @@ const STORAGE_KEY = 'yct_current_player';
         state.currentPlayer.playerId
       ));
 
-    const journeyPromise = isCacheValid_('journey')
+    const journeyPromise = !force && isCacheValid_('journey')
       ? Promise.resolve({
         success: true,
         data: getCache_('journey') || {}
@@ -5582,7 +5598,7 @@ const STORAGE_KEY = 'yct_current_player';
         state.currentPlayer.playerId
       ));
 
-    Promise.all([profilePromise, journeyPromise])
+    return Promise.all([profilePromise, journeyPromise])
       .then(([playerRes, journeyRes]) => {
         if (isSuccess(playerRes)) {
           state.currentPlayer = playerRes.data.player;
