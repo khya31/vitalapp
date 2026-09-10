@@ -108,7 +108,7 @@ const STORAGE_KEY = 'yct_current_player';
   const HOME_SYNC_RESUME_DEBOUNCE_MS = 1500;
   const SERVER_READ_CALL_TIMEOUT_MS = 90 * 1000;
   const CACHE_LOADING_PROMISE_TTL_MS = SERVER_READ_CALL_TIMEOUT_MS + 5 * 1000;
-  const TASK_SUBMIT_LOADING_VISIBLE_MS = 1000;
+  const TASK_SUBMIT_LOADING_VISIBLE_MS = 250;
   const TASK_PERFORMANCE_PROBE_ENABLED = (() => {
     try {
       return new URLSearchParams(window.location.search).get('taskPerf') === '1';
@@ -121,7 +121,7 @@ const STORAGE_KEY = 'yct_current_player';
     return '任務已儲存';
   }
   function formatTaskQueueAcceptedMessage_() {
-    return '任務已送出';
+    return '任務已完成';
   }
 
   function getOfficialHomeScoreSnapshot_() {
@@ -317,6 +317,14 @@ const STORAGE_KEY = 'yct_current_player';
       state.taskSubmitLoadingTimer = null;
       setLoading(false);
     }, TASK_SUBMIT_LOADING_VISIBLE_MS);
+  }
+
+  function submitTaskWriteWithRecovery_(action, payload) {
+    return callServer(action, payload).catch((firstError) =>
+      callServer(action, payload).catch(() => {
+        throw firstError;
+      })
+    );
   }
 
   function buildClientTaskScorePreview_(kind, taskType) {
@@ -5101,18 +5109,19 @@ const STORAGE_KEY = 'yct_current_player';
 
     tasks.forEach(([type, value, homeStatus]) => {
       const done = toBool(value);
-      const pending = !done && isTaskUiPending_('DAILY', type);
+      const pending = isTaskUiPending_('DAILY', type);
+      const visibleDone = done || pending;
       const status = $(homeStatus);
 
       if (status) {
-        status.textContent = done ? '已完成' : '未完成';
+        status.textContent = visibleDone ? '已完成' : '未完成';
       }
 
       const homeButton = $('.quest-card[data-practice="' + type + '"]');
 
       if (homeButton) {
-        homeButton.classList.toggle('done', done);
-        homeButton.classList.remove('is-pending');
+        homeButton.classList.toggle('done', visibleDone);
+        homeButton.classList.toggle('is-pending', pending);
         homeButton.disabled = pending;
       }
     });
@@ -5209,8 +5218,13 @@ const STORAGE_KEY = 'yct_current_player';
     state.pendingDailyRequestId = pendingDaily.requestId;
     payload.requestId = pendingDaily.requestId;
     const localPreviewKey = 'LOCAL_DAILY::' + payload.requestId;
+    const previousTaskValue = toBool(record[config.field]);
 
     setTaskUiPending_('DAILY', taskType, true);
+    state.dailyRecord = Object.assign({}, record, {
+      recordDate: String(record.recordDate || payload.clientMutationPeriodKey)
+    });
+    state.dailyRecord[config.field] = true;
     renderDailyStatus();
     if (!directHome) {
       const submitBtn = $('#practiceSubmitBtn');
@@ -5223,13 +5237,18 @@ const STORAGE_KEY = 'yct_current_player';
       localPreviewKey,
       buildClientTaskScorePreview_('DAILY', taskType)
     );
+    if (!directHome) {
+      closeModal('practiceModal');
+    }
+    setResultMessage('#homeMessage', '任務已完成', true);
 
     const taskRequestStartedAt = Date.now();
     showTaskSubmitLoadingBriefly_('儲存今日任務...');
 
-    callServer('submitDailyPractice', payload)
+    submitTaskWriteWithRecovery_('submitDailyPractice', payload)
       .then((res) => {
         if (!isSuccess(res)) {
+          state.dailyRecord[config.field] = previousTaskValue;
           setTaskUiPending_('DAILY', taskType, false);
           state.pendingDailyRequestId = '';
           renderDailyStatus();
@@ -5263,9 +5282,6 @@ const STORAGE_KEY = 'yct_current_player';
         const performanceMessage = res.data.processingPending
           ? formatTaskQueueAcceptedMessage_(res.data.performance, taskRequestStartedAt)
           : formatTaskPerformanceMessage_(res.data.performance, taskRequestStartedAt);
-        if (!directHome) {
-          closeModal('practiceModal');
-        }
         setResultMessage('#homeMessage', performanceMessage, true);
         if (res.data.processingPending && res.data.eventId) {
           continueTaskWriteProcessing_(
@@ -5280,6 +5296,7 @@ const STORAGE_KEY = 'yct_current_player';
         }
       })
       .catch((error) => {
+        state.dailyRecord[config.field] = previousTaskValue;
         setTaskUiPending_('DAILY', taskType, false);
         state.pendingDailyRequestId = '';
         renderDailyStatus();
@@ -5356,19 +5373,20 @@ const STORAGE_KEY = 'yct_current_player';
 
     rows.forEach(([type, value, statusSelector, buttonSelector]) => {
       const done = toBool(value);
-      const pending = !done && isTaskUiPending_('MEETING', type);
+      const pending = isTaskUiPending_('MEETING', type);
+      const visibleDone = done || pending;
       const button = $(buttonSelector) ||
         $('[data-weekly-task="' + type + '"]');
       const status = $(statusSelector) ||
         (button ? button.querySelector('em') : null);
 
       if (status) {
-        status.textContent = done ? '已完成' : '未完成';
+        status.textContent = visibleDone ? '已完成' : '未完成';
       }
 
       if (button) {
-        button.classList.toggle('done', done);
-        button.classList.remove('is-pending');
+        button.classList.toggle('done', visibleDone);
+        button.classList.toggle('is-pending', pending);
         button.disabled = pending;
       }
     });
@@ -5474,8 +5492,13 @@ const STORAGE_KEY = 'yct_current_player';
     state.pendingWeeklyRequestId = pendingMeeting.requestId;
     payload.requestId = pendingMeeting.requestId;
     const localPreviewKey = 'LOCAL_MEETING::' + payload.requestId;
+    const previousTaskValue = toBool(record[config.field]);
 
     setTaskUiPending_('MEETING', taskType, true);
+    state.weeklyTaskRecord = Object.assign({}, record, {
+      weekKey: String(record.weekKey || payload.clientMutationPeriodKey)
+    });
+    state.weeklyTaskRecord[config.field] = true;
     renderWeeklyTaskStatus();
     if (!directHome) {
       const submitBtn = $('#weeklyTaskSubmitBtn');
@@ -5488,13 +5511,18 @@ const STORAGE_KEY = 'yct_current_player';
       localPreviewKey,
       buildClientTaskScorePreview_('MEETING', taskType)
     );
+    if (!directHome) {
+      closeModal('weeklyTaskModal');
+    }
+    setResultMessage('#homeMessage', '任務已完成', true);
 
     const taskRequestStartedAt = Date.now();
     showTaskSubmitLoadingBriefly_('儲存本週任務...');
 
-    callServer('submitMeetingPractice', payload)
+    submitTaskWriteWithRecovery_('submitMeetingPractice', payload)
       .then((res) => {
         if (!isSuccess(res)) {
+          state.weeklyTaskRecord[config.field] = previousTaskValue;
           setTaskUiPending_('MEETING', taskType, false);
           state.pendingWeeklyRequestId = '';
           renderWeeklyTaskStatus();
@@ -5528,9 +5556,6 @@ const STORAGE_KEY = 'yct_current_player';
         const performanceMessage = res.data.processingPending
           ? formatTaskQueueAcceptedMessage_(res.data.performance, taskRequestStartedAt)
           : formatTaskPerformanceMessage_(res.data.performance, taskRequestStartedAt);
-        if (!directHome) {
-          closeModal('weeklyTaskModal');
-        }
         setResultMessage('#homeMessage', performanceMessage, true);
         if (res.data.processingPending && res.data.eventId) {
           continueTaskWriteProcessing_(
@@ -5545,6 +5570,7 @@ const STORAGE_KEY = 'yct_current_player';
         }
       })
       .catch((error) => {
+        state.weeklyTaskRecord[config.field] = previousTaskValue;
         setTaskUiPending_('MEETING', taskType, false);
         state.pendingWeeklyRequestId = '';
         renderWeeklyTaskStatus();
