@@ -1,0 +1,11 @@
+/* Lossless WebP overrides for login/home artwork. */
+body {
+  --asset-bg-mobile: url("../UI/app-bg-cute-v4.webp?v=20260813-stableasset1");
+  --asset-bg-desktop: url("../UI/app-bg-cute-v4.webp?v=20260813-stableasset1");
+  --asset-hero-mobile: url("../UI/hero-journey-cute-v4.webp?v=20260813-stableasset1");
+  --asset-hero-desktop: url("../UI/hero-journey-cute-v4.webp?v=20260813-stableasset1");
+  --asset-journey-mobile: url("../UI/journey-map-cute-v4.webp?v=20260813-stableasset1");
+  --asset-journey-desktop: url("../UI/journey-map-cute-v4.webp?v=20260813-stableasset1");
+  --asset-game-camp: url("../UI/board-panel-cute-v4.webp?v=20260813-stableasset1");
+  --asset-game-panel: url("../UI/quest-panel-cute-v4.webp?v=20260813-stableasset1");
+}

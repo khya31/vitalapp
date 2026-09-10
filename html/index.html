@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <link rel="icon" type="image/png" href="../UI/app-icon.png?v=20260813-stableasset1">
+  <link rel="apple-touch-icon" href="../UI/app-icon.png?v=20260813-stableasset1">
+  <link rel="manifest" href="manifest.webmanifest?v=20260813-stableasset1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="高雄青職｜活力同行">
+  <meta name="application-name" content="高雄青職｜活力同行">
+  <meta name="theme-color" content="#8fd3ff">
+  <title>高雄青職｜活力同行</title>
+  <link rel="stylesheet" href="style.css?v=20260909-migration-rc1">
+  <link rel="stylesheet" href="login-webp-perf.css?v=20260909-migration-rc1">
+</head>
+<body>
+  <div class="app-shell">
+    <main class="main-panel">
+
+      <!-- 登入 -->
+      <section id="authView" class="auth-view">
+        <div class="auth-hero">
+          <div class="auth-hero-copy">
+            <span class="eyebrow">高雄青職</span>
+            <h1>活力同行</h1>
+          </div>
+        </div>
+
+        <section class="auth-card">
+          <h2>登入旅程</h2>
+
+          <form id="loginForm" class="form-stack" autocomplete="off">
+            <label class="field-label">
+              登入帳號
+              <input
+                id="loginName"
+                name="login-account-input"
+                type="text"
+                autocomplete="off"
+                autocapitalize="none"
+                spellcheck="false"
+                readonly
+                placeholder="請輸入登入帳號"
+              >
+            </label>
+
+            <label class="field-label">
+              登入密碼
+              <input
+                id="loginPassword"
+                name="login-password-input"
+                type="password"
+                autocomplete="new-password"
+                readonly
+                placeholder="請輸入登入密碼"
+              >
+            </label>
+
+            <label class="login-persistence-option">
+              <input id="keepLoginCheckbox" type="checkbox">
+              <span>保持登入（僅限私人裝置）</span>
+            </label>
+            <p class="login-device-note">共用裝置請勿勾選；未勾選時，關閉此分頁後登入狀態即失效。</p>
+
+            <button class="primary-btn" type="submit">進入旅程</button>
+          </form>
+
+          <button id="openRegisterBtn" class="ghost-btn" type="button">
+            新活力人註冊
+          </button>
+
+          <div id="authMessage" class="message-box hidden"></div>
+        </section>
+      </section>
+
+      <!-- 首頁 -->
+      <section id="homeView" class="view-screen hidden">
+        <header class="app-topbar">
+          <button id="homeAvatarBtn" class="top-avatar-btn" type="button" aria-label="開啟訊息中心">
+            <img id="homeAvatarImg" class="top-avatar-img hidden" alt="活力人頭像">
+            <span id="homeAvatarPlaceholder">?</span>
+            <span id="homeMessageBadge" class="home-message-badge" aria-label="開啟訊息中心">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M12 6.5v7"></path>
+                <circle cx="12" cy="17.5" r="1"></circle>
+              </svg>
+            </span>
+          </button>
+
+          <div class="topbar-player">
+            <strong id="homePlayerName">活力人</strong>
+            <span id="homeGroupName"></span>
+          </div>
+
+          <div class="topbar-tools">
+            <button id="refreshHomeBtn" class="top-tool-btn" type="button" aria-label="更新">
+              <span>↻</span>
+              <small>更新</small>
+            </button>
+            <button id="logoutBtn" class="top-tool-btn" type="button" aria-label="登出">
+              <span>⇥</span>
+              <small>登出</small>
+            </button>
+          </div>
+        </header>
+
+        <section class="home-hero-card">
+          <div>
+            <span class="hero-kicker">高雄青職</span>
+            <h1>活力同行</h1>
+            <p id="heroGreetingText"></p>
+          </div>
+
+          <div id="homeHeroAnnouncements" class="hero-announcements">
+            <div class="hero-announcement-item">尚無公告</div>
+          </div>
+
+          <div class="hero-score-grid" aria-label="活力組積分">
+            <section class="hero-score-card hero-contribution">
+              <span>貢獻</span>
+              <strong id="homeContributionText">0</strong>
+              <small>點</small>
+              <em id="homeContributionSyncText" class="score-sync-badge" hidden></em>
+            </section>
+
+            <section class="hero-score-card hero-group-score">
+              <span>小組</span>
+              <strong id="homeGroupScoreText">0</strong>
+              <small>點</small>
+              <em id="homeGroupSyncText" class="score-sync-badge" hidden></em>
+            </section>
+          </div>
+
+        </section>
+
+        <section class="home-player-panel">
+          <div class="player-stat-card">
+            <span>連續完成<br>今日任務</span>
+            <strong id="homeStreakText">0 天</strong>
+          </div>
+          <div class="player-stat-card">
+            <span>活力組<br>成員數</span>
+            <strong id="homeMemberCountText">0</strong>
+          </div>
+          <button id="openChestCollectionBtn" class="player-stat-card treasure-stat-card" type="button" aria-label="開啟寶藏收藏">
+            <span id="homeChestCountText" class="sr-only">已獲得 0 / 8</span>
+            <span class="treasure-chest-hero" aria-hidden="true"></span>
+          </button>
+        </section>
+
+        <section class="journey-map-card">
+          <div class="journey-map-head">
+            <div>
+              <span class="section-kicker"></span>
+              <h2 id="homeJourneyChapterText">信心</h2>
+            </div>
+
+            <button id="openGroupJourneyBtn" class="journey-more-btn" type="button">
+              查看各組
+            </button>
+          </div>
+
+          <div id="homeJourneyNodes" class="journey-node-track" aria-label="生命成長旅程">
+            <button class="journey-node active" type="button" data-journey-node="faith">
+              <span>1</span>
+              <strong>信心</strong>
+            </button>
+
+            <button class="journey-node" type="button" data-journey-node="virtue">
+              <span>2</span>
+              <strong>美德</strong>
+            </button>
+
+            <button class="journey-node" type="button" data-journey-node="knowledge">
+              <span>3</span>
+              <strong>知識</strong>
+            </button>
+
+            <button class="journey-node" type="button" data-journey-node="selfControl">
+              <span>4</span>
+              <strong>節制</strong>
+            </button>
+
+            <button class="journey-node" type="button" data-journey-node="endurance">
+              <span>5</span>
+              <strong>忍耐</strong>
+            </button>
+
+            <button class="journey-node" type="button" data-journey-node="godliness">
+              <span>6</span>
+              <strong>敬虔</strong>
+            </button>
+
+            <button class="journey-node" type="button" data-journey-node="brotherlyAffection">
+              <span>7</span>
+              <strong>弟兄相愛</strong>
+            </button>
+
+            <button class="journey-node" type="button" data-journey-node="love">
+              <span>8</span>
+              <strong>愛</strong>
+            </button>
+          </div>
+
+          <div class="journey-foot">
+            <span id="homeJourneyNextText">距離美德篇章還有 20,000 點</span>
+            <span id="homeJourneyProgressText">0%</span>
+          </div>
+        </section>
+
+        <section class="home-section group-social-section hidden">
+          <p id="homeCampMeta"></p>
+          <div id="homeGroupPosts" class="camp-feed"></div>
+          <div id="homeSocialMessage" class="result-box hidden"></div>
+        </section>
+
+        <section class="home-section task-section">
+          <div class="section-heading">
+            <div>
+              <span class="section-kicker"></span>
+              <h2>今日任務</h2>
+            </div>
+          </div>
+
+          <div class="daily-quest-grid">
+            <section class="quest-task-group group-task-group">
+              <span class="quest-group-label">小組任務</span>
+
+              <button id="homeMorningBtn" class="quest-card" type="button" data-practice="morning">
+                <span class="quest-icon">晨</span>
+                <strong>任務</strong>
+                <small>—</small>
+                <em id="homeMorningStatus">未完成</em>
+              </button>
+            </section>
+
+            <section class="quest-task-group personal-task-group">
+              <span class="quest-group-label">個人任務</span>
+
+              <div class="personal-task-card-row">
+                <button id="homeBibleBtn" class="quest-card" type="button" data-practice="bible">
+                  <span class="quest-icon">讀</span>
+                  <strong>任務</strong>
+                  <small>—</small>
+                  <em id="homeBibleStatus">未完成</em>
+                </button>
+
+                <button id="homePrayerPracticeBtn" class="quest-card" type="button" data-practice="prayer">
+                  <span class="quest-icon">禱</span>
+                  <strong>任務</strong>
+                  <small>—</small>
+                  <em id="homePrayerPracticeStatus">未完成</em>
+                </button>
+
+                <button id="homeBookBtn" class="quest-card" type="button" data-practice="book">
+                  <span class="quest-icon">書</span>
+                  <strong>任務</strong>
+                  <small>—</small>
+                  <em id="homeBookStatus">未完成</em>
+                </button>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section class="home-section task-section weekly-task-section" id="homeWeeklyTaskSection">
+          <div class="section-heading">
+            <div>
+              <span class="section-kicker"></span>
+              <div class="weekly-task-title-row">
+                <h2>本週任務</h2>
+                <p id="homeWeeklyDateText">日期：讀取中...</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="daily-quest-grid">
+            <section class="quest-task-group group-task-group">
+              <span class="quest-group-label">小組任務</span>
+
+              <button id="homeOutreachVisitBtn" class="quest-card" type="button" data-weekly-task="outreachVisit">
+                <span class="quest-icon">訪</span>
+                <strong>任務</strong>
+                <small>—</small>
+                <em id="homeOutreachVisitStatus">未完成</em>
+              </button>
+            </section>
+
+            <section class="quest-task-group personal-task-group">
+              <span class="quest-group-label">個人任務</span>
+
+              <div class="personal-task-card-row">
+                <button id="homeWeeklySmallGroupBtn" class="quest-card" type="button" data-weekly-task="smallGroup">
+                  <span class="quest-icon">小</span>
+                  <strong>任務</strong>
+                  <small>—</small>
+                  <em id="homeWeeklySmallGroupStatus">未完成</em>
+                </button>
+
+                <button id="homeWeeklyPrayerMeetingBtn" class="quest-card" type="button" data-weekly-task="prayerMeeting">
+                  <span class="quest-icon">禱</span>
+                  <strong>任務</strong>
+                  <small>—</small>
+                  <em id="homeWeeklyPrayerMeetingStatus">未完成</em>
+                </button>
+
+                <button id="homeWeeklyLordDayBtn" class="quest-card" type="button" data-weekly-task="lordDayMeeting">
+                  <span class="quest-icon">主</span>
+                  <strong>任務</strong>
+                  <small>—</small>
+                  <em id="homeWeeklyLordDayStatus">未完成</em>
+                </button>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section class="home-section gateway-section">
+          <div class="section-heading">
+            <div>
+              <span class="section-kicker">旅程入口</span>
+              <h2>今天的同行</h2>
+              <p>個人足跡與同行紀錄。</p>
+            </div>
+          </div>
+
+          <div class="gateway-grid">
+
+            <button id="goMyBtn" class="gateway-card journey-gateway" type="button">
+              <img src="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3C/svg%3E" data-managed-url="../UI/icon-growth.png" data-image-key="iconGrowth" alt="">
+              <strong>我的足跡</strong>
+              <span>貢獻與紀錄</span>
+            </button>
+          </div>
+        </section>
+
+        <div id="homeMessage" class="result-box hidden"></div>
+      </section>
+      <!-- 我的 -->
+      <section id="myView" class="view-screen hidden">
+        <header class="sub-header">
+          <button class="back-view-btn" data-view="home" type="button">‹</button>
+
+          <div>
+            <h1>同行手冊</h1>
+          </div>
+
+          <button id="myRefreshBtn" class="header-action-btn" type="button">更新</button>
+        </header>
+
+        <section class="my-profile-card">
+          <button id="myAvatarBtn" class="my-avatar-button" type="button">
+            <img id="myAvatarImg" class="my-avatar-img hidden" alt="活力人頭像">
+            <span id="myAvatarPlaceholder">?</span>
+          </button>
+
+          <div>
+            <h2 id="myPlayerName">活力人</h2>
+            <p id="myGroupName">未加入活力組</p>
+            <button id="openAvatarBtn" class="mini-outline-btn" type="button">更換頭像</button>
+          </div>
+        </section>
+
+        <section class="my-menu-list" aria-label="我的功能選單">
+          <div class="my-menu-grid">
+            <button id="openGrowthModalBtn" class="my-grid-btn" type="button">
+              <span>同行<br>貢獻</span>
+            </button>
+
+            <button id="openVitalGroupsBtn" class="my-grid-btn" type="button">
+              <span>活力組<br>管理</span>
+            </button>
+
+            <button id="openGroupPostModalBtn" class="my-grid-btn" type="button">
+              <span>小組<br>公告</span>
+            </button>
+
+            <button id="openPracticeHistoryBtn" class="my-grid-btn" type="button">
+              <span>操練<br>紀錄</span>
+            </button>
+
+            <button id="openAccountSettingsBtn" class="my-grid-btn" type="button">
+              <span>帳號<br>設定</span>
+            </button>
+
+            <button id="openLogoutConfirmBtn" class="my-grid-btn" type="button">
+              <span>登出</span>
+            </button>
+          </div>
+        </section>
+
+        <div id="myMessage" class="result-box hidden"></div>
+      </section>
+    </main>
+
+    <nav id="bottomNav" class="bottom-nav hidden">
+      <button id="navHomeBtn" type="button"><span>⌂</span>首頁</button>
+      <button id="navMyBtn" type="button"><span>◎</span>我的</button>
+    </nav>
+  </div>
+
+  <!-- 註冊 -->
+  <div id="registerModal" class="modal-layer hidden" role="dialog" aria-modal="true">
+    <div class="modal-card large-modal-card">
+      <div class="modal-header">
+        <button class="modal-close-btn" data-close-modal="registerModal" type="button">‹</button>
+        <h2>新活力人註冊</h2>
+        <span></span>
+      </div>
+
+      <form id="registerForm" class="form-stack">
+        <label class="field-label">
+          照顧區
+          <select id="registerCareDistrict" required disabled>
+            <option value="">讀取照顧區中...</option>
+          </select>
+        </label>
+
+        <label class="field-label">
+          大區
+          <select id="registerCareArea" required disabled>
+            <option value="">請先選擇照顧區</option>
+          </select>
+        </label>
+
+        <label class="field-label">
+          帳號
+          <input id="registerLoginName" type="text" autocomplete="username" inputmode="latin" placeholder="3 至 32 碼英文字母或數字，不可重複" required>
+        </label>
+
+        <label class="field-label">
+          密碼
+          <input id="registerPassword" type="password" autocomplete="new-password" minlength="8" maxlength="64" placeholder="請設定 8 至 64 碼登入密碼" required>
+        </label>
+
+        <label class="field-label">
+          確認密碼
+          <input id="registerPasswordConfirm" type="password" autocomplete="new-password" minlength="8" maxlength="64" placeholder="請再次輸入登入密碼" required>
+        </label>
+
+        <label class="field-label">
+          真實姓名
+          <input id="registerName" type="text" autocomplete="name" placeholder="請填寫真實姓名" required>
+        </label>
+
+        <label class="field-label">
+          出生年份（西元）
+          <input id="registerBirthYear" type="number" inputmode="numeric" min="1900" step="1" placeholder="例如：1991" required>
+        </label>
+
+        <label class="field-label">
+          頭像
+          <select id="registerAvatarGender">
+            <option value="male">弟兄</option>
+            <option value="female">姊妹</option>
+          </select>
+        </label>
+
+        <section class="avatar-picker-card">
+          <img id="registerAvatarPreview" class="avatar-preview-img" alt="頭像預覽">
+
+          <div>
+            <strong id="registerAvatarInfo">尚未選擇</strong>
+            <div class="avatar-step-row">
+              <button id="registerPrevAvatarBtn" class="mini-outline-btn" type="button">上一個</button>
+              <button id="registerRandomAvatarBtn" class="mini-outline-btn" type="button">隨機</button>
+              <button id="registerNextAvatarBtn" class="mini-outline-btn" type="button">下一個</button>
+            </div>
+          </div>
+        </section>
+
+        <button class="primary-btn" type="submit">完成註冊</button>
+      </form>
+
+      <div id="registerMessage" class="result-box hidden"></div>
+    </div>
+  </div>
+
+  <!-- 訊息中心 -->
+  <div id="messageCenterModal" class="modal-layer hidden" role="dialog" aria-modal="true" aria-labelledby="messageCenterTitle">
+    <div class="modal-card wide-modal-card message-center-card">
+      <div class="modal-header">
+        <button id="refreshMessageCenterBtn" class="mini-outline-btn" type="button">更新</button>
+        <h2 id="messageCenterTitle">訊息中心</h2>
+        <button class="modal-close-btn" data-close-modal="messageCenterModal" type="button" aria-label="關閉訊息中心">×</button>
+      </div>
+
+      <div class="message-center-tabs" role="tablist" aria-label="訊息類型">
+        <button class="message-center-tab active" data-message-center-tab="ANNOUNCEMENT" type="button">系統公告</button>
+        <button class="message-center-tab" data-message-center-tab="SPECIAL_TASK" type="button">特殊任務</button>
+        <button class="message-center-tab" data-message-center-tab="REWARD_NOTIFICATION" type="button">任務獎勵</button>
+      </div>
+
+      <div id="messageCenterStatusMessage" class="result-box hidden"></div>
+      <div id="messageCenterEmpty" class="empty-card hidden">目前沒有訊息</div>
+
+      <div id="messageCenterLayout" class="message-center-layout">
+        <label id="messageCenterSelectorRow" class="message-center-selector hidden">
+          <span>選擇訊息</span>
+          <select id="messageCenterSelector"></select>
+        </label>
+
+        <article id="messageCenterDetail" class="message-center-detail">
+          <header class="message-center-detail-heading">
+            <div class="message-center-detail-identity">
+              <div id="messageCenterDetailIcon" class="message-center-detail-icon" aria-hidden="true"></div>
+              <h3 id="messageCenterDetailTitle"></h3>
+            </div>
+            <span id="messageCenterDetailType" class="message-center-type-label"></span>
+          </header>
+
+          <div class="message-center-detail-copy">
+            <section id="messageCenterRewardBox" class="message-center-reward-box hidden">
+              <strong>獎勵內容</strong>
+              <span id="messageCenterRewardText"></span>
+            </section>
+            <p id="messageCenterDetailContent" class="message-center-content"></p>
+            <label id="messageCenterSuppressRow" class="message-center-suppress hidden">
+              <input id="messageCenterSuppressToday" type="checkbox">
+              <span>今日不再自動顯示</span>
+            </label>
+          </div>
+        </article>
+      </div>
+
+    </div>
+  </div>
+
+  <div id="avatarModal" class="modal-layer hidden" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <div class="modal-header">
+        <button class="modal-close-btn" data-close-modal="avatarModal" type="button">‹</button>
+        <h2>更換頭像</h2>
+        <span></span>
+      </div>
+
+      <label class="field-label">
+        頭像類型
+        <select id="avatarGenderSelect">
+          <option value="male">弟兄</option>
+          <option value="female">姊妹</option>
+        </select>
+      </label>
+
+      <section class="avatar-picker-card">
+        <img id="avatarModalPreview" class="avatar-preview-img" alt="頭像預覽">
+
+        <div>
+          <strong id="avatarModalInfo">尚未選擇</strong>
+          <div class="avatar-step-row">
+            <button id="avatarPrevBtn" class="mini-outline-btn" type="button">上一個</button>
+            <button id="avatarRandomBtn" class="mini-outline-btn" type="button">隨機</button>
+            <button id="avatarNextBtn" class="mini-outline-btn" type="button">下一個</button>
+          </div>
+        </div>
+      </section>
+
+      <button id="avatarSaveBtn" class="primary-btn" type="button">儲存頭像</button>
+      <div id="avatarModalMessage" class="result-box hidden"></div>
+    </div>
+  </div>
+
+  <div id="groupPostModal" class="modal-layer hidden" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <div class="modal-header">
+        <button class="modal-close-btn" data-close-modal="groupPostModal" type="button">‹</button>
+        <h2>小組公告</h2>
+        <span></span>
+      </div>
+
+      <form id="homeGroupPostForm" class="form-stack">
+        <label class="field-label">
+          公告內容（15 個中文字以內）
+          <input id="homeGroupPostInput" type="text" maxlength="15" placeholder="最多 15 個字">
+        </label>
+        <button id="homeGroupPostSubmitBtn" class="primary-btn" type="submit">發布公告</button>
+        <button id="cancelGroupPostEditBtn" class="secondary-btn hidden" type="button">取消編輯</button>
+      </form>
+
+      <section class="management-section">
+        <h4>我的小組公告</h4>
+        <div id="myGroupPostList" class="modal-list">
+          <div class="empty-card">尚未發布小組公告；每位組員最多 1 則。</div>
+        </div>
+      </section>
+
+      <div id="groupPostMessage" class="result-box hidden"></div>
+    </div>
+  </div>
+
+  <!-- 帳號設定 -->
+  <div id="accountSettingsModal" class="modal-layer hidden" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <div class="modal-header">
+        <button class="modal-close-btn" data-close-modal="accountSettingsModal" type="button">‹</button>
+        <h2>帳號設定</h2>
+        <span></span>
+      </div>
+
+      <form id="accountProfileForm" class="form-stack">
+        <label class="field-label">
+          顯示名稱
+          <input id="accountDisplayName" type="text" maxlength="20" placeholder="請輸入顯示名稱">
+        </label>
+        <button class="primary-btn" type="submit">儲存顯示名稱</button>
+      </form>
+
+      <form id="changePasswordForm" class="form-stack management-section">
+        <h4>修改登入密碼</h4>
+        <label class="field-label">
+          目前登入密碼
+          <input id="currentPasswordCode" type="password" autocomplete="current-password">
+        </label>
+        <label class="field-label">
+          新登入密碼
+          <input id="newPasswordCode" type="password" minlength="8" maxlength="64" autocomplete="new-password" placeholder="8 至 64 碼">
+        </label>
+        <label class="field-label">
+          確認新登入密碼
+          <input id="confirmNewPasswordCode" type="password" minlength="8" maxlength="64" autocomplete="new-password">
+        </label>
+        <button class="ghost-btn" type="submit">更新登入密碼</button>
+      </form>
+
+      <div id="accountSettingsMessage" class="result-box hidden"></div>
+    </div>
+  </div>
+
+  <!-- 活力組管理 -->
+  <div id="vitalGroupsModal" class="modal-layer hidden" role="dialog" aria-modal="true">
+    <div class="modal-card wide-modal-card">
+      <div class="modal-header">
+        <button class="modal-close-btn" data-close-modal="vitalGroupsModal" type="button">‹</button>
+        <h2>活力組管理</h2>
+        <span></span>
+      </div>
+
+      <section class="confirm-info-card">
+        <strong>活力組</strong>
+        <p>一人只能加入一個活力組。</p>
+      </section>
+
+      <div id="vitalGroupsList" class="modal-list">
+        <div class="empty-card">讀取活力組中...</div>
+      </div>
+
+      <form id="createVitalGroupForm" class="form-stack management-section">
+        <h4>建立活力組</h4>
+        <label class="field-label">
+          活力組名稱
+          <input id="createVitalGroupName" type="text" maxlength="10" placeholder="請輸入 2～10 字">
+        </label>
+        <button class="primary-btn" type="submit">建立活力組</button>
+      </form>
+
+      <form id="joinVitalGroupForm" class="form-stack management-section">
+        <h4>用邀請碼加入</h4>
+        <label class="field-label">
+          邀請碼
+          <input id="joinVitalGroupCode" type="text" maxlength="16" placeholder="請輸入邀請碼">
+        </label>
+        <button class="ghost-btn" type="submit">加入活力組</button>
+      </form>
+
+      <div id="vitalGroupsMessage" class="result-box hidden"></div>
+    </div>
+  </div>
+
+  <!-- 操練確認 -->
+  <div id="practiceModal" class="modal-layer hidden" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <div class="modal-header">
+        <button class="modal-close-btn" data-close-modal="practiceModal" type="button">‹</button>
+        <h2>完成今日任務</h2>
+        <span></span>
+      </div>
+
+      <section class="confirm-info-card">
+        <strong id="practiceModalHeading">小組晨興</strong>
+        <p id="practiceModalDescription"></p>
+        <span id="practiceModalReward" class="reward-chip"></span>
+      </section>
+
+      <button id="practiceSubmitBtn" class="primary-btn" type="button">確認完成</button>
+      <div id="practiceModalMessage" class="result-box hidden"></div>
+    </div>
+  </div>
+
+  <!-- 本週任務確認 -->
+  <div id="weeklyTaskModal" class="modal-layer hidden" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <div class="modal-header">
+        <button class="modal-close-btn" data-close-modal="weeklyTaskModal" type="button">‹</button>
+        <h2>完成本週任務</h2>
+        <span></span>
+      </div>
+
+      <section class="confirm-info-card">
+        <strong id="weeklyTaskModalHeading">外出探訪</strong>
+        <p id="weeklyTaskModalDescription"></p>
+        <span id="weeklyTaskModalReward" class="reward-chip"></span>
+      </section>
+
+      <button id="weeklyTaskSubmitBtn" class="primary-btn" type="button">確認完成</button>
+      <div id="weeklyTaskModalMessage" class="result-box hidden"></div>
+    </div>
+  </div>
+  <!-- 確認 -->
+  <div id="confirmModal" class="modal-layer hidden" role="dialog" aria-modal="true">
+    <div class="modal-card confirm-modal-card">
+      <div class="modal-header">
+        <button class="modal-close-btn" data-close-modal="confirmModal" type="button">‹</button>
+        <h2 id="confirmModalTitle">確認操作</h2>
+        <span></span>
+      </div>
+
+      <section class="confirm-info-card">
+        <strong id="confirmModalHeading">確定要繼續嗎？</strong>
+        <p id="confirmModalDescription"></p>
+      </section>
+
+      <div class="modal-action-stack">
+        <button id="confirmModalSubmitBtn" class="primary-btn" type="button">確認</button>
+        <button class="ghost-btn modal-close-btn" data-close-modal="confirmModal" type="button">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 通用資料 -->
+  <div id="infoModal" class="modal-layer hidden" role="dialog" aria-modal="true">
+    <div class="modal-card wide-modal-card">
+      <div class="modal-header">
+        <button class="modal-close-btn" data-close-modal="infoModal" type="button">‹</button>
+        <h2 id="infoModalTitle">詳細資料</h2>
+        <span></span>
+      </div>
+
+      <div id="infoModalContent" class="info-modal-content"></div>
+    </div>
+  </div>
+
+
+
+  <!-- 寶箱內容浮動視窗 -->
+  <div
+    id="chestDetailModal"
+    class="modal-layer chest-detail-modal-layer hidden"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="chestDetailModalTitle"
+  >
+    <div class="modal-card chest-detail-modal-card">
+      <div class="modal-header">
+        <button
+          class="modal-close-btn"
+          data-close-modal="chestDetailModal"
+          type="button"
+          aria-label="關閉寶箱內容"
+        >‹</button>
+        <h2 id="chestDetailModalTitle">寶箱內容</h2>
+        <span></span>
+      </div>
+
+      <section class="chest-detail-content">
+        <div id="chestDetailModalVisual" class="chest-detail-visual">
+          <img id="chestDetailModalImage" src="" alt="">
+        </div>
+
+        <div class="chest-detail-copy">
+          <span id="chestDetailModalStatus" class="chest-detail-status">待取得</span>
+          <h3 id="chestDetailModalName">寶箱名稱</h3>
+          <p id="chestDetailModalText">尚無寶箱內容。</p>
+        </div>
+      </section>
+
+      <button
+        id="chestClaimRewardBtn"
+        class="primary-btn chest-detail-close-btn"
+        type="button"
+      >領取獎勵</button>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div id="loadingOverlay" class="loading-overlay hidden">
+    <div class="loading-card">
+      <div class="spinner"></div>
+      <span id="loadingText">處理中...</span>
+    </div>
+  </div>
+
+  <script src="runtime-settings.js?v=20260910-registration-recovery1"></script>
+  <script src="server-client.js?v=20260909-migration-rc1"></script>
+  <script src="script.js?v=20260910-registration-recovery1"></script>
+</body>
+</html>

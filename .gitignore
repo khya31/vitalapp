@@ -1,0 +1,15 @@
+node_modules/
+.clasprc.json
+.clasprc-*.json
+.env
+.env.*
+work/
+private/
+*-snapshot.json
+*-credentials.json
+test-results.json
+
+# GAS 與本機開發資料不發布到 GitHub Pages。
+backend/
+docs/
+tests/
