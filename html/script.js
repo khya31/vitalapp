@@ -118,7 +118,7 @@ const STORAGE_KEY = 'yct_current_player';
   })();
 
   function formatTaskPerformanceMessage_() {
-    return '任務已儲存';
+    return '任務已完成';
   }
   function formatTaskQueueAcceptedMessage_() {
     return '任務已完成';
