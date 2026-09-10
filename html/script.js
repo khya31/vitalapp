@@ -3841,6 +3841,9 @@ const STORAGE_KEY = 'yct_current_player';
 
         if (data.player) {
           state.currentPlayer = data.player;
+          setCache_('accountProfile', {
+            player: data.player
+          });
           persistCurrentPlayer();
         }
 
@@ -3859,6 +3862,7 @@ const STORAGE_KEY = 'yct_current_player';
         state.groupJourney = data.journey && data.journey.group
           ? data.journey.group
           : null;
+        setCache_('journey', state.groupJourney);
         state.chestSummary = data.chestSummary || createEmptyChestSummary();
         setCache_('chestSummary', state.chestSummary);
         applyMessageCenterData_(data.messageCenter, true);
@@ -3907,6 +3911,9 @@ const STORAGE_KEY = 'yct_current_player';
 
     if (data.player) {
       state.currentPlayer = data.player;
+      setCache_('accountProfile', {
+        player: data.player
+      });
       persistCurrentPlayer();
     }
 
@@ -3925,6 +3932,7 @@ const STORAGE_KEY = 'yct_current_player';
     state.groupJourney = data.journey && data.journey.group
       ? data.journey.group
       : null;
+    setCache_('journey', state.groupJourney);
     state.chestSummary = data.chestSummary || createEmptyChestSummary();
     setCache_('chestSummary', state.chestSummary);
     applyMessageCenterData_(data.messageCenter, true);
