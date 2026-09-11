@@ -28,6 +28,12 @@
   const BRIDGE_MESSAGE_READY = 'vitalapp-gas-ready';
   const BRIDGE_MESSAGE_REQUEST = 'vitalapp-gas-request';
   const BRIDGE_MESSAGE_RESPONSE = 'vitalapp-gas-response';
+  const BRIDGE_CHANNEL = [
+    'vitalapp',
+    Date.now().toString(36),
+    Math.random().toString(36).slice(2),
+    Math.random().toString(36).slice(2)
+  ].join('-');
   let bridgeFrame = null;
   let bridgeOrigin = '';
   let bridgeReady = false;
@@ -52,6 +58,7 @@
     const url = new URL(getApiUrl_('ping'));
     const config = global.APP_RUNTIME_CONFIG || {};
     url.searchParams.set('bridge', '1');
+    url.searchParams.set('channel', BRIDGE_CHANNEL);
     url.searchParams.set('v', String(config.releaseVersion || Date.now()));
     return url.toString();
   }
@@ -150,6 +157,7 @@
       bridgeFrame.contentWindow.postMessage({
         type: BRIDGE_MESSAGE_REQUEST,
         id: requestId,
+        channel: BRIDGE_CHANNEL,
         action: functionName,
         args: Array.isArray(args) ? args : []
       }, bridgeOrigin);
@@ -166,6 +174,7 @@
     }
 
     const message = event.data || {};
+    if (message.channel !== BRIDGE_CHANNEL) return;
     if (message.type === BRIDGE_MESSAGE_READY) {
       bridgeOrigin = event.origin;
       bridgeReady = true;
