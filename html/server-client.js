@@ -23,7 +23,8 @@
     'adminConfirmSpecialTaskResults',
     'adminSendSpecialTaskRewards'
   ]);
-  const BRIDGE_READY_TIMEOUT_MS = 12 * 1000;
+  const BRIDGE_READY_TIMEOUT_MS = 4 * 1000;
+  const BRIDGE_RETRY_COOLDOWN_MS = 60 * 1000;
   const BRIDGE_RELOAD_MS = 20 * 1000;
   const BRIDGE_MESSAGE_READY = 'vitalapp-gas-ready';
   const BRIDGE_MESSAGE_REQUEST = 'vitalapp-gas-request';
@@ -36,7 +37,9 @@
   ].join('-');
   let bridgeFrame = null;
   let bridgeOrigin = '';
+  let bridgeMessageWindow = null;
   let bridgeReady = false;
+  let bridgeUnavailableUntil = 0;
   let bridgeReadyPromise = null;
   let bridgeReadyResolve = null;
   let bridgeReloadTimer = 0;
@@ -119,11 +122,15 @@
 
   function waitForBridgeReady_() {
     if (bridgeReady) return Promise.resolve(true);
+    if (Date.now() < bridgeUnavailableUntil) return Promise.resolve(false);
 
     return Promise.race([
       ensureBridge_().then(() => true),
       new Promise((resolve) => {
-        global.setTimeout(() => resolve(false), BRIDGE_READY_TIMEOUT_MS);
+        global.setTimeout(() => {
+          bridgeUnavailableUntil = Date.now() + BRIDGE_RETRY_COOLDOWN_MS;
+          resolve(false);
+        }, BRIDGE_READY_TIMEOUT_MS);
       })
     ]);
   }
@@ -154,7 +161,14 @@
         timeoutId: timeoutId
       });
 
-      bridgeFrame.contentWindow.postMessage({
+      if (!bridgeMessageWindow) {
+        bridgePendingRequests.delete(requestId);
+        global.clearTimeout(timeoutId);
+        reject(createBridgeRpcError_('GAS Bridge 尚未就緒'));
+        return;
+      }
+
+      bridgeMessageWindow.postMessage({
         type: BRIDGE_MESSAGE_REQUEST,
         id: requestId,
         channel: BRIDGE_CHANNEL,
@@ -165,11 +179,7 @@
   }
 
   global.addEventListener('message', (event) => {
-    if (
-      !bridgeFrame ||
-      event.source !== bridgeFrame.contentWindow ||
-      !isTrustedBridgeOrigin_(event.origin)
-    ) {
+    if (!bridgeFrame || !isTrustedBridgeOrigin_(event.origin)) {
       return;
     }
 
@@ -177,13 +187,20 @@
     if (message.channel !== BRIDGE_CHANNEL) return;
     if (message.type === BRIDGE_MESSAGE_READY) {
       bridgeOrigin = event.origin;
+      bridgeMessageWindow = event.source;
       bridgeReady = true;
+      bridgeUnavailableUntil = 0;
       if (bridgeReloadTimer) global.clearTimeout(bridgeReloadTimer);
       if (bridgeReadyResolve) bridgeReadyResolve(true);
       return;
     }
 
-    if (message.type !== BRIDGE_MESSAGE_RESPONSE || !message.id) return;
+    if (
+      message.type !== BRIDGE_MESSAGE_RESPONSE ||
+      !message.id ||
+      !bridgeMessageWindow ||
+      event.source !== bridgeMessageWindow
+    ) return;
     const pending = bridgePendingRequests.get(String(message.id));
     if (!pending) return;
 
