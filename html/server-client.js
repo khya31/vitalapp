@@ -23,6 +23,19 @@
     'adminConfirmSpecialTaskResults',
     'adminSendSpecialTaskRewards'
   ]);
+  const BRIDGE_READY_TIMEOUT_MS = 12 * 1000;
+  const BRIDGE_RELOAD_MS = 20 * 1000;
+  const BRIDGE_MESSAGE_READY = 'vitalapp-gas-ready';
+  const BRIDGE_MESSAGE_REQUEST = 'vitalapp-gas-request';
+  const BRIDGE_MESSAGE_RESPONSE = 'vitalapp-gas-response';
+  let bridgeFrame = null;
+  let bridgeOrigin = '';
+  let bridgeReady = false;
+  let bridgeReadyPromise = null;
+  let bridgeReadyResolve = null;
+  let bridgeReloadTimer = 0;
+  let bridgeRequestSequence = 0;
+  const bridgePendingRequests = new Map();
 
   function isAdminAction_(action) {
     return String(action || '').indexOf('admin') === 0;
@@ -34,6 +47,152 @@
     const adminUrl = String(config.adminGasWebAppUrl || '').trim();
     return isAdminAction_(action) ? (adminUrl || publicUrl) : publicUrl;
   }
+
+  function getBridgeUrl_() {
+    const url = new URL(getApiUrl_('ping'));
+    const config = global.APP_RUNTIME_CONFIG || {};
+    url.searchParams.set('bridge', '1');
+    url.searchParams.set('v', String(config.releaseVersion || Date.now()));
+    return url.toString();
+  }
+
+  function isTrustedBridgeOrigin_(origin) {
+    try {
+      const parsed = new URL(String(origin || ''));
+      return parsed.protocol === 'https:' && (
+        parsed.hostname === 'script.google.com' ||
+        parsed.hostname === 'script.googleusercontent.com' ||
+        parsed.hostname.endsWith('.script.googleusercontent.com') ||
+        parsed.hostname.endsWith('-script.googleusercontent.com')
+      );
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function reloadBridgeUntilReady_() {
+    if (bridgeReady || !bridgeFrame) return;
+    bridgeFrame.src = getBridgeUrl_() + '&attempt=' + Date.now();
+    bridgeReloadTimer = global.setTimeout(
+      reloadBridgeUntilReady_,
+      BRIDGE_RELOAD_MS
+    );
+  }
+
+  function ensureBridge_() {
+    if (bridgeReadyPromise) return bridgeReadyPromise;
+
+    bridgeReadyPromise = new Promise((resolve) => {
+      bridgeReadyResolve = resolve;
+
+      const mount = () => {
+        if (bridgeFrame || !global.document.body) return;
+        bridgeFrame = global.document.createElement('iframe');
+        bridgeFrame.setAttribute('aria-hidden', 'true');
+        bridgeFrame.setAttribute('tabindex', '-1');
+        bridgeFrame.style.cssText =
+          'position:absolute;width:1px;height:1px;border:0;opacity:0;pointer-events:none;';
+        bridgeFrame.src = getBridgeUrl_();
+        global.document.body.appendChild(bridgeFrame);
+        bridgeReloadTimer = global.setTimeout(
+          reloadBridgeUntilReady_,
+          BRIDGE_RELOAD_MS
+        );
+      };
+
+      if (global.document.body) {
+        mount();
+      } else {
+        global.document.addEventListener('DOMContentLoaded', mount, { once: true });
+      }
+    });
+
+    return bridgeReadyPromise;
+  }
+
+  function waitForBridgeReady_() {
+    if (bridgeReady) return Promise.resolve(true);
+
+    return Promise.race([
+      ensureBridge_().then(() => true),
+      new Promise((resolve) => {
+        global.setTimeout(() => resolve(false), BRIDGE_READY_TIMEOUT_MS);
+      })
+    ]);
+  }
+
+  function createBridgeRpcError_(message) {
+    const error = new Error(message || 'GAS RPC 失敗');
+    error.code = 'BRIDGE_RPC_ERROR';
+    return error;
+  }
+
+  function invokeViaBridge_(functionName, args) {
+    const requestId = [
+      Date.now().toString(36),
+      (++bridgeRequestSequence).toString(36),
+      Math.random().toString(36).slice(2)
+    ].join('-');
+    const timeoutMs = getRequestTimeoutMs_(functionName);
+
+    return new Promise((resolve, reject) => {
+      const timeoutId = global.setTimeout(() => {
+        bridgePendingRequests.delete(requestId);
+        reject(createTimeoutError_());
+      }, timeoutMs);
+
+      bridgePendingRequests.set(requestId, {
+        resolve: resolve,
+        reject: reject,
+        timeoutId: timeoutId
+      });
+
+      bridgeFrame.contentWindow.postMessage({
+        type: BRIDGE_MESSAGE_REQUEST,
+        id: requestId,
+        action: functionName,
+        args: Array.isArray(args) ? args : []
+      }, bridgeOrigin);
+    });
+  }
+
+  global.addEventListener('message', (event) => {
+    if (
+      !bridgeFrame ||
+      event.source !== bridgeFrame.contentWindow ||
+      !isTrustedBridgeOrigin_(event.origin)
+    ) {
+      return;
+    }
+
+    const message = event.data || {};
+    if (message.type === BRIDGE_MESSAGE_READY) {
+      bridgeOrigin = event.origin;
+      bridgeReady = true;
+      if (bridgeReloadTimer) global.clearTimeout(bridgeReloadTimer);
+      if (bridgeReadyResolve) bridgeReadyResolve(true);
+      return;
+    }
+
+    if (message.type !== BRIDGE_MESSAGE_RESPONSE || !message.id) return;
+    const pending = bridgePendingRequests.get(String(message.id));
+    if (!pending) return;
+
+    bridgePendingRequests.delete(String(message.id));
+    global.clearTimeout(pending.timeoutId);
+
+    if (message.error) {
+      pending.reject(createBridgeRpcError_(String(message.error)));
+      return;
+    }
+
+    try {
+      validateApiCompatibilityFromResponse_(message.result);
+      pending.resolve(message.result);
+    } catch (error) {
+      pending.reject(error);
+    }
+  });
 
   function validateApiUrl_(url) {
     if (!url) {
@@ -192,7 +351,7 @@
     return error;
   }
 
-  async function invoke(functionName, args) {
+  async function invokeViaHttp_(functionName, args) {
     const action = String(functionName || '').trim();
     const url = getApiUrl_(action);
 
@@ -279,6 +438,20 @@
     validateApiCompatibilityFromResponse_(responseBody);
     return responseBody;
   }
+
+  async function invoke(functionName, args) {
+    const action = String(functionName || '').trim();
+    if (!action) throw new Error('缺少後端函式名稱');
+
+    validateApiUrl_(getApiUrl_(action));
+    if (await waitForBridgeReady_()) {
+      return invokeViaBridge_(action, args);
+    }
+
+    return invokeViaHttp_(action, args);
+  }
+
+  ensureBridge_();
 
   global.GasBackend = Object.freeze({
     get url() {
